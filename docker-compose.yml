@@ -13,7 +13,9 @@ services:
     ports:
       - 7125:7125
     restart: unless-stopped
+    privileged: true
     volumes:
+      - /dev:/dev
       - gcode_files:/home/klippy/gcode_files
       # be aware to create your own branch if you mount the config folder as it will be updated on the main branch
       # that way you can merge upstream changes to your customized configs
@@ -23,8 +25,8 @@ services:
       # - ./printer.cfg:/home/klippy/.config/printer.cfg
     # mount serial device - take care to grant sufficient permissions to the device: <host_dev>:<container_dev>
     # put <container_dev> into your printer.cfg
-    devices:
-      - /dev/ttyUSB0:/dev/ttyUSB0
+    #devices:
+    #  - /dev/ttyUSB0:/dev/ttyUSB0
 
   ##################################################################
   # Example config for a second printer on a different serial port
