@@ -53,7 +53,7 @@ WORKDIR ${HOME}
 #RUN ${KLIPPER_VENV_DIR}/bin/pip install wheel
 #RUN ${KLIPPER_VENV_DIR}/bin/pip install -r klipper/scripts/klippy-requirements.txt
 
-RUN git clone git@github.com:cape/klipper.git
+RUN git clone https://github.com/cape/klipper.git
 RUN [ ! -d ${KLIPPER_VENV_DIR} ] && virtualenv -p python2 ${KLIPPER_VENV_DIR}
 RUN ${KLIPPER_VENV_DIR}/bin/python -m pip install pip -U
 RUN ${KLIPPER_VENV_DIR}/bin/pip install wheel
