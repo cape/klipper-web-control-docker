@@ -1,4 +1,4 @@
-FROM python:3.9 as builder
+FROM python:3.9 as image
 
 ARG DEBIAN_FRONTEND=noninteractive
 
@@ -32,7 +32,22 @@ RUN apt-get update && \
     build-essential \
     avrdude gcc-avr binutils-avr avr-libc \
     stm32flash libnewlib-arm-none-eabi \
-    gcc-arm-none-eabi binutils-arm-none-eabi
+    gcc-arm-none-eabi binutils-arm-none-eabi\
+    git \
+    gcc \
+    locales \
+    supervisor \
+    libjpeg62-turbo \
+    libtiff5 \
+    gpiod \
+    libopenjp2-7 \
+    rsync \
+    liblmdb0 \
+    libsodium-dev \
+    zlib1g-dev \
+    python3-libgpiod && \
+    sed -i -e 's/# en_GB.UTF-8 UTF-8/en_GB.UTF-8 UTF-8/' /etc/locale.gen && \
+    locale-gen
     
 RUN sed -i -e 's/# en_GB.UTF-8 UTF-8/en_GB.UTF-8 UTF-8/' /etc/locale.gen
 RUN locale-gen
@@ -67,40 +82,6 @@ RUN ${MOONRAKER_VENV_DIR}/bin/python -m pip install pip -U
 RUN ${MOONRAKER_VENV_DIR}/bin/pip install wheel gpiod
 
 RUN ${MOONRAKER_VENV_DIR}/bin/pip install -r moonraker/scripts/moonraker-requirements.txt
-
-FROM python:3.9-slim as image
-
-ARG DEBIAN_FRONTEND=noninteractive
-
-RUN apt-get update && \
-    apt-get upgrade -y && \
-    apt-get install -y \
-    git \
-    gcc \
-    locales \
-    supervisor \
-    libjpeg62-turbo \
-    libtiff5 \
-    gpiod \
-    libopenjp2-7 \
-    rsync \
-    liblmdb0 \
-    libsodium-dev \
-    zlib1g-dev \
-    python3-libgpiod && \
-    sed -i -e 's/# en_GB.UTF-8 UTF-8/en_GB.UTF-8 UTF-8/' /etc/locale.gen && \
-    locale-gen && \
-    # Clean up
-    apt-get autoremove -y && \
-    apt-get clean -y && \
-    rm -rf /var/lib/apt/lists/*
-
-ENV LC_ALL en_GB.UTF-8 
-ENV LANG en_GB.UTF-8  
-ENV LANGUAGE en_GB:en   
-
-ARG USER=klippy
-ARG HOME=/home/${USER}
 ENV CONFIG_DIR=${HOME}/.config
 ENV KLIPPER_VENV_DIR=${HOME}/klippy-env
 ENV MOONRAKER_VENV_DIR=${HOME}/moonraker-env
@@ -108,8 +89,9 @@ ENV MOONRAKER_VENV_DIR=${HOME}/moonraker-env
 ARG DEVICE_GROUP=device
 ARG DEVICE_GID=987
 
-RUN useradd --user-group --no-log-init --shell /bin/false -m -d ${HOME} ${USER} && \
-    groupadd -g ${DEVICE_GID} ${DEVICE_GROUP} && \
+USER root
+
+RUN groupadd -g ${DEVICE_GID} ${DEVICE_GROUP} && \
     usermod -a -G ${DEVICE_GROUP} ${USER} && \
     usermod -a -G tty ${USER} && \
     usermod -a -G dialout ${USER} && \
@@ -117,7 +99,7 @@ RUN useradd --user-group --no-log-init --shell /bin/false -m -d ${HOME} ${USER} 
     mkdir -p /var/log/klipper && chown ${USER}:${USER} /var/log/klipper ${HOME} && \
     pip install --no-cache supervisord-dependent-startup gpiod
 
-RUN mkdir -p /usr/lib/python3 && ln -s /usr/local/lib/python3.9/site-packages /usr/lib/python3/dist-packages
+# RUN mkdir -p /usr/lib/python3 && ln -s /usr/local/lib/python3.9/site-packages /usr/lib/python3/dist-packages
 
 USER ${USER}
 WORKDIR ${HOME}
@@ -133,11 +115,13 @@ EXPOSE 7125
 
 USER root
 
-COPY --chown=${USER}:${USER} --from=builder ${HOME}/klipper ${HOME}/klipper
-COPY --chown=${USER}:${USER} --from=builder ${KLIPPER_VENV_DIR} ${KLIPPER_VENV_DIR}
-COPY --chown=${USER}:${USER} --from=builder ${HOME}/moonraker ${HOME}/moonraker
-COPY --chown=${USER}:${USER} --from=builder ${MOONRAKER_VENV_DIR} ${MOONRAKER_VENV_DIR}
+#COPY --chown=${USER}:${USER} --from=builder ${HOME}/klipper ${HOME}/klipper
+#COPY --chown=${USER}:${USER} --from=builder ${KLIPPER_VENV_DIR} ${KLIPPER_VENV_DIR}
+#COPY --chown=${USER}:${USER} --from=builder ${HOME}/moonraker ${HOME}/moonraker
+#COPY --chown=${USER}:${USER} --from=builder ${MOONRAKER_VENV_DIR} ${MOONRAKER_VENV_DIR}
 COPY --chown=${USER}:${USER} config ${CONFIG_DIR}
+
+RUN chown -R ${USER}:${USER} ${HOME}
 
 COPY klipper/supervisord.conf /etc/supervisord/conf.d/supervisord.conf
 COPY klipper/*.ini /etc/supervisord/
